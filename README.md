@@ -16,15 +16,56 @@
 Алгоритм сортування обміном №2 (із використанням прапорця) за незменшенням.
 ## Лістинг реалізації першої частини завдання
 ```lisp
-;;; Лістинг реалізації
+(defun bubble-sort-functional (list &key (key #'identity) (test #'>=))
+  (let* ((compare (lambda (a b) (funcall test (funcall key a) (funcall key b)))))
+    (labels ((bubble-pass (lst last-index)
+               (cond
+                 ((or (null lst) (null (cdr lst))) lst)
+                 ((<= last-index 0) lst)
+                 (t
+                  (let ((head (first lst))
+                        (tail (cdr lst)))
+                    (if (funcall compare head (first tail))
+                        (cons (first tail) (bubble-pass (cons head (cdr tail)) (1- last-index)))
+                        (cons head (bubble-pass tail (1- last-index))))))))
+             (sort-helper (lst last-index)
+               (if (or (null lst) (<= last-index 0))
+                   lst
+                   (sort-helper (bubble-pass lst last-index) (1- last-index)))))
+      (sort-helper list (1- (length list))))))
 ```
 ### Тестові набори та утиліти першої частини
 ```lisp
-;;; Лістинг реалізації утилітних тестових функцій та тестових наборів
+(defun check-result (name function input expected)
+  (let ((result (funcall function input)))
+    (format t "~:[FAILED~;passed~]... ~a: Expected ~a, got ~a~%"
+            (equal result expected) name expected result)))
+
+(defun test-functions ()
+  ;; Тести для bubble-sort-functional
+  (check-result "Bubble Sort 1"
+                (lambda (input) (bubble-sort-functional input))
+                '(3 1 4 2)
+                '(1 2 3 4))
+  (check-result "Bubble Sort 2"
+                (lambda (input) (bubble-sort-functional input :key #'abs :test #'<))
+                '(-3 -1 4 -2)
+                '(4 -3 -2 -1))
+  (check-result "Bubble Sort 3"
+                (lambda (input) (bubble-sort-functional input))
+                '(1 1 4 3)
+                '(1 1 3 4))
+  (check-result "Bubble Sort 4"
+                (lambda (input) (bubble-sort-functional input :key #'abs :test #'<))
+                '(1 1 4 3)
+                '(4 3 1 1))
 ```
 ### Тестування першої частини
 ```lisp
-;;; Виклик і результат виконання тестів
+passed... Bubble Sort 1: Expected (1 2 3 4), got (1 2 3 4)
+passed... Bubble Sort 2: Expected (4 -3 -2 -1), got (4 -3 -2 -1)
+passed... Bubble Sort 3: Expected (1 1 3 4), got (1 1 3 4)
+passed... Bubble Sort 4: Expected (4 3 1 1), got (4 3 1 1)
 ```
 ## Варіант другої частини <5>
 Написати функцію propagator-fn , яка має один ключовий параметр — функцію comparator . propagator-fn має повернути функцію, яка при застосуванні в якості першого аргументу mapcar разом з одним списком-аргументом робить наступне: якщо елемент не "кращий" за попередній згідно з comparator , тоді він заміняється на значення попереднього, тобто "кращого", елемента. Якщо ж він "кращий" за попередній елемент згідно comparator, тоді заміна не відбувається. Функція comparator за замовчуванням має значення #'> .
@@ -38,13 +79,32 @@ CL-USER> (mapcar (propagator-fn :comparator #'<) '(1 2 3))
 ```
 ## Лістинг реалізації другої частини завдання
 ```lisp
-;;; Лістинг реалізації
+(defun propagator-fn (&key (comparator #'>))
+  (let ((previous-value nil))
+    (lambda (current-value)
+      (if (or (null previous-value) (funcall comparator current-value previous-value))
+          (setf previous-value current-value)
+          previous-value))))
 ```
 ### Тестові набори та утиліти другої частини
 ```lisp
-;;; Лістинг реалізації утилітних тестових функцій та тестових наборів
+  (check-result "Propagator 1"
+                (lambda (input) (mapcar (propagator-fn) input))
+                '(3 1 4 2)
+                '(3 3 4 4))
+  (check-result "Propagator 2"
+                (lambda (input) (mapcar (propagator-fn) input))
+                '(1 2 3)
+                '(1 2 3))
+  (check-result "Propagator 3"
+                (lambda (input) (mapcar (propagator-fn :comparator #'<) input))
+                '(1 2 3)
+                '(1 1 1)))
+(test-functions)
 ```
 ### Тестування другої частини
 ```lisp
-;;; Виклик і результат виконання тестів
+passed... Propagator 1: Expected (3 3 4 4), got (3 3 4 4)
+passed... Propagator 2: Expected (1 2 3), got (1 2 3)
+passed... Propagator 3: Expected (1 1 1), got (1 1 1)
 ```
